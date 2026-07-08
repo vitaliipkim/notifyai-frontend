@@ -8,6 +8,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Notify AI">
 <title>Notify AI</title>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "50c71145-4c8d-415e-a38e-15da5bd215ac",
+    });
+  });
+</script>
 <style>
   :root {
     --accent: #2563EB; --accent-light: #EFF6FF; --accent-dark: #1D4ED8;
