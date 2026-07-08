@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Notify AI">
+<title>Notify AI</title>
+<style>
+  :root {
+    --accent: #2563EB; --accent-light: #EFF6FF; --accent-dark: #1D4ED8;
+    --success: #059669; --success-light: #ECFDF5;
+    --warning: #D97706; --warning-light: #FFFBEB;
+    --danger: #DC2626; --danger-light: #FEF2F2;
+    --surface-0: #F8FAFC; --surface-1: #F1F5F9; --surface-2: #FFFFFF;
+    --text-primary: #0F172A; --text-secondary: #475569; --text-muted: #94A3B8;
+    --border: #E2E8F0; --border-strong: #CBD5E1;
+    --radius: 10px; --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-0: #0F172A; --surface-1: #1E293B; --surface-2: #1E293B;
+      --text-primary: #F1F5F9; --text-secondary: #94A3B8; --text-muted: #64748B;
+      --border: #334155; --border-strong: #475569;
+      --accent-light: #1E3A5F; --success-light: #064E3B; --warning-light: #451A03; --danger-light: #450A0A;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; background: var(--surface-0); color: var(--text-primary); min-height: 100vh; }
+  .app { max-width: 430px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; background: var(--surface-0); }
+  .header { background: var(--surface-2); padding: 52px 20px 16px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+  .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .app-title { font-size: 26px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.5px; }
+  .app-title span { color: var(--accent); }
+  .header-right { display: flex; gap: 8px; align-items: center; }
+  .lang-btn { background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: 20px; padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; font-family: inherit; }
+  .header-badge { background: var(--accent-light); color: var(--accent); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+  .header-sub { font-size: 13px; color: var(--text-muted); }
+  .setup-card { margin: 16px; background: var(--surface-2); border: 1.5px solid var(--accent); border-radius: 14px; padding: 18px; }
+  .setup-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+  .setup-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5; }
+  .setup-input-row { display: flex; gap: 8px; }
+  .setup-input { flex: 1; background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; color: var(--text-primary); outline: none; font-family: monospace; }
+  .setup-input:focus { border-color: var(--accent); }
+  .setup-btn { background: var(--accent); color: white; border: none; border-radius: var(--radius); padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .connected-badge { display: flex; align-items: center; gap: 8px; background: var(--success-light); border: 1px solid var(--success); border-radius: var(--radius); padding: 10px 14px; }
+  .connected-text { font-size: 13px; color: var(--success); font-weight: 500; }
+  .add-section { padding: 12px 16px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+  .add-row { display: flex; gap: 8px; }
+  .add-input { flex: 1; background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 12px 14px; font-size: 14px; color: var(--text-primary); outline: none; font-family: inherit; }
+  .add-input::placeholder { color: var(--text-muted); }
+  .add-input:focus { border-color: var(--accent); background: var(--surface-2); }
+  .add-btn { background: var(--accent); color: white; border: none; border-radius: var(--radius); padding: 12px 16px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .suggestions { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .suggestions::-webkit-scrollbar { display: none; }
+  .chip { background: var(--surface-1); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 12px; color: var(--text-secondary); cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .section-label { padding: 14px 16px 8px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .alerts-list { flex: 1; padding: 0 12px 100px; display: flex; flex-direction: column; gap: 10px; }
+  .alert-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 14px; box-shadow: var(--shadow); }
+  .alert-card.triggered { border-color: var(--accent); }
+  .alert-card.checking { border-color: var(--warning); }
+  .card-top { display: flex; gap: 12px; align-items: flex-start; }
+  .card-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .card-body { flex: 1; min-width: 0; }
+  .card-title { font-size: 14px; font-weight: 500; color: var(--text-primary); line-height: 1.4; margin-bottom: 4px; }
+  .card-meta { font-size: 12px; color: var(--text-muted); }
+  .card-status { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .status-dot-wrap { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot-active { background: var(--success); }
+  .dot-checking { background: var(--warning); animation: pulse 1s infinite; }
+  .dot-triggered { background: var(--accent); }
+  .dot-paused { background: var(--text-muted); }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+  .status-label { font-size: 11px; font-weight: 500; }
+  .status-active { color: var(--success); } .status-checking { color: var(--warning); } .status-triggered { color: var(--accent); } .status-paused { color: var(--text-muted); }
+  .result-box { margin-top: 10px; background: var(--accent-light); border-radius: var(--radius); padding: 10px 12px; }
+  .result-text { font-size: 13px; color: var(--accent); line-height: 1.5; font-weight: 500; }
+  .card-footer { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .last-check { font-size: 11px; color: var(--text-muted); }
+  .card-actions { display: flex; gap: 6px; }
+  .btn-sm { background: none; border: 1px solid var(--border-strong); border-radius: 6px; padding: 4px 10px; font-size: 11px; color: var(--text-secondary); cursor: pointer; font-family: inherit; }
+  .btn-danger { color: var(--danger); border-color: var(--danger); }
+  .empty { padding: 60px 20px; text-align: center; }
+  .empty-emoji { font-size: 48px; margin-bottom: 14px; }
+  .empty-title { font-size: 17px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+  .empty-sub { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+  .checking-card { background: var(--warning-light); border: 1px solid var(--warning); border-radius: var(--radius); padding: 12px 14px; margin: 0 12px 10px; display: flex; gap: 10px; align-items: center; }
+  .checking-text { font-size: 13px; color: var(--warning); }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--warning); border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #1E293B; color: white; padding: 10px 18px; border-radius: 20px; font-size: 13px; font-weight: 500; z-index: 100; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: var(--surface-2); border-top: 1px solid var(--border); padding: 8px 0 20px; display: flex; justify-content: space-around; z-index: 10; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 24px; cursor: pointer; }
+  .nav-icon { font-size: 22px; color: var(--text-muted); }
+  .nav-icon.active { color: var(--accent); }
+  .nav-label { font-size: 10px; color: var(--text-muted); }
+  .nav-label.active { color: var(--accent); font-weight: 600; }
+  .sync-badge { background: var(--success-light); border: 1px solid var(--success); border-radius: 8px; padding: 6px 12px; margin: 8px 16px 0; font-size: 12px; color: var(--success); display: flex; align-items: center; gap: 6px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-row">
+      <div class="app-title">Notify <span>AI</span></div>
+      <div class="header-right">
+        <button class="lang-btn" id="lang-btn" onclick="toggleLang()">🌐 EN</button>
+        <div class="header-badge" id="active-badge">0 активных</div>
+      </div>
+    </div>
+    <div class="header-sub" id="header-sub">Следим за миром пока ты отдыхаешь</div>
+  </div>
+
+  <div class="setup-card" id="setup-card">
+    <div class="setup-title" id="setup-title">🔑 Подключи OpenAI</div>
+    <div class="setup-sub" id="setup-sub">Вставь API ключ чтобы алерты начали работать в реальном времени.</div>
+    <div class="setup-input-row">
+      <input class="setup-input" id="api-key-input" type="password" placeholder="sk-proj-..." />
+      <button class="setup-btn" id="setup-save-btn" onclick="saveApiKey()">Сохранить</button>
+    </div>
+  </div>
+
+  <div class="add-section">
+    <div class="add-row">
+      <input class="add-input" id="alert-input" placeholder="Сообщи мне когда..." />
+      <button class="add-btn" id="add-btn" onclick="createAlert()">＋ Добавить</button>
+    </div>
+    <div class="suggestions" id="chips-row"></div>
+  </div>
+
+  <div class="section-label" id="section-label">Мои алерты</div>
+  <div id="checking-banner" style="display:none" class="checking-card">
+    <div class="spinner"></div>
+    <div class="checking-text" id="checking-text">ИИ анализирует твой запрос...</div>
+  </div>
+  <div class="alerts-list" id="alerts-list"></div>
+
+  <div class="bottom-nav">
+    <div class="nav-item"><div class="nav-icon active">🔔</div><div class="nav-label active" id="nav-alerts">Алерты</div></div>
+    <div class="nav-item"><div class="nav-icon">📋</div><div class="nav-label" id="nav-history">История</div></div>
+    <div class="nav-item"><div class="nav-icon">⚙️</div><div class="nav-label" id="nav-settings">Настройки</div></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+const SUPABASE_URL = 'https://nlaqpnlhbqwqwwtrjfcx.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_eZE0Q3y-BKte2pyACJ1NaQ_LWUnop-r';
+const USER_ID = 'user_vitalii'; // unique user id
+
+const API_KEY_STORAGE = 'notifyai_openai_key';
+const LANG_KEY = 'notifyai_lang';
+
+let alerts = [];
+let apiKey = localStorage.getItem(API_KEY_STORAGE) || '';
+let lang = localStorage.getItem(LANG_KEY) || 'ru';
+
+// ── TRANSLATIONS ────────────────────────────────────────
+const T = {
+  ru: {
+    activeBadge: n => n + ' активных', headerSub: 'Следим за миром пока ты отдыхаешь',
+    setupTitle: '🔑 Подключи OpenAI', setupSave: 'Сохранить',
+    setupSub: 'Вставь API ключ чтобы алерты начали работать в реальном времени.',
+    connectedText: 'OpenAI подключён — алерты работают в реальном времени',
+    inputPlaceholder: 'Сообщи мне когда...', addBtn: '＋ Добавить',
+    chips: [['✈️ Авиабилеты','Билеты LA→Сеул дешевле $600'],['💼 Вакансия','Вакансия Product Manager в Neuralink'],['🎤 Концерт','BLACKPINK объявят новый тур'],['📈 IPO','SpaceX выйдет на IPO'],['📱 Продукт','Вышел новый iPhone']],
+    sectionLabel: 'Мои алерты', checkingDefault: 'ИИ анализирует твой запрос...',
+    searching: kw => 'Ищем: "' + kw + '"...', recheckingMsg: 'Проверяем...',
+    navAlerts: 'Алерты', navHistory: 'История', navSettings: 'Настройки',
+    toastInvalidKey: 'Неверный формат ключа', toastKeySaved: 'API ключ сохранён!',
+    toastNoText: 'Опиши что хочешь отслеживать', toastNoKey: 'Сначала подключи OpenAI API ключ',
+    toastTriggered: '🔔 Событие найдено!', toastCreated: '✅ Алерт создан, следим...',
+    toastError: e => 'Ошибка: ' + e, toastRechecked: '🔄 Проверено, пока ничего',
+    toastRecheckErr: 'Ошибка проверки', toastDeleted: 'Алерт удалён',
+    emptyTitle: 'Нет алертов', emptySub: 'Добавь первый алерт — опиши что хочешь отслеживать',
+    statusActive: 'Активен', statusChecking: 'Проверка...', statusTriggered: 'Сработал!', statusPaused: 'Пауза',
+    freqHourly: 'каждый час', freqDaily: 'раз в день', freqWeekly: 'раз в неделю',
+    btnCheck: 'Проверить', btnPause: 'Пауза', btnResume: 'Возобновить', btnDelete: 'Удалить',
+    timeNever: 'ещё не проверялся', timeJust: 'только что',
+    timeMin: m => m + ' мин назад', timeH: h => h + ' ч назад', timeD: d => d + ' д назад',
+    langBtn: '🌐 EN', autoCheck: '🔄 Автопроверка каждый час через сервер',
+  },
+  en: {
+    activeBadge: n => n + ' active', headerSub: 'Watching the world while you rest',
+    setupTitle: '🔑 Connect OpenAI', setupSave: 'Save',
+    setupSub: 'Paste your API key to enable real-time alerts.',
+    connectedText: 'OpenAI connected — alerts running in real time',
+    inputPlaceholder: 'Notify me when...', addBtn: '＋ Add',
+    chips: [['✈️ Flights','Flights LA to Seoul under $600'],['💼 Jobs','Product Manager role at Neuralink'],['🎤 Concert','BLACKPINK announce a new tour'],['📈 IPO','SpaceX goes public'],['📱 Product','New iPhone released']],
+    sectionLabel: 'My alerts', checkingDefault: 'AI is analyzing your request...',
+    searching: kw => 'Searching: "' + kw + '"...', recheckingMsg: 'Checking...',
+    navAlerts: 'Alerts', navHistory: 'History', navSettings: 'Settings',
+    toastInvalidKey: 'Invalid key format', toastKeySaved: 'API key saved!',
+    toastNoText: 'Describe what you want to track', toastNoKey: 'Connect your OpenAI API key first',
+    toastTriggered: '🔔 Event found!', toastCreated: '✅ Alert created, watching...',
+    toastError: e => 'Error: ' + e, toastRechecked: '🔄 Checked — nothing yet',
+    toastRecheckErr: 'Check failed', toastDeleted: 'Alert deleted',
+    emptyTitle: 'No alerts yet', emptySub: 'Add your first alert — describe what you want to track',
+    statusActive: 'Active', statusChecking: 'Checking...', statusTriggered: 'Triggered!', statusPaused: 'Paused',
+    freqHourly: 'every hour', freqDaily: 'daily', freqWeekly: 'weekly',
+    btnCheck: 'Check', btnPause: 'Pause', btnResume: 'Resume', btnDelete: 'Delete',
+    timeNever: 'never checked', timeJust: 'just now',
+    timeMin: m => m + 'm ago', timeH: h => h + 'h ago', timeD: d => d + 'd ago',
+    langBtn: '🌐 RU', autoCheck: '🔄 Auto-check every hour via server',
+  }
+};
+function l() { return T[lang]; }
+
+const ICONS = { flight:'✈️', job:'💼', concert:'🎤', ipo:'📈', product:'📱', news:'📰', price:'💰', default:'🔔' };
+const ICON_BG = { flight:'#EFF6FF', job:'#ECFDF5', concert:'#F5F3FF', ipo:'#FFF7ED', product:'#F0FDF4', news:'#F8FAFC', price:'#FFFBEB', default:'#F1F5F9' };
+
+// ── SUPABASE ────────────────────────────────────────────
+const SB = {
+  headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+
+  async getAlerts() {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/alerts?user_id=eq.' + USER_ID + '&order=created_at.desc', { headers: this.headers });
+    return res.ok ? res.json() : [];
+  },
+
+  async createAlert(alert) {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/alerts', {
+      method: 'POST', headers: this.headers,
+      body: JSON.stringify({ user_id: USER_ID, text: alert.text, keywords: alert.keywords, condition: alert.condition, frequency: alert.frequency, status: alert.status })
+    });
+    const data = await res.json();
+    return data[0];
+  },
+
+  async updateAlert(id, data) {
+    await fetch(SUPABASE_URL + '/rest/v1/alerts?id=eq.' + id, {
+      method: 'PATCH', headers: this.headers, body: JSON.stringify(data)
+    });
+  },
+
+  async deleteAlert(id) {
+    await fetch(SUPABASE_URL + '/rest/v1/alerts?id=eq.' + id, { method: 'DELETE', headers: this.headers });
+  }
+};
+
+// ── LANG ────────────────────────────────────────────────
+function toggleLang() {
+  lang = lang === 'ru' ? 'en' : 'ru';
+  localStorage.setItem(LANG_KEY, lang);
+  applyLang(); renderAlerts();
+}
+
+function applyLang() {
+  const loc = l();
+  document.getElementById('lang-btn').textContent = loc.langBtn;
+  document.getElementById('header-sub').textContent = loc.headerSub;
+  document.getElementById('alert-input').placeholder = loc.inputPlaceholder;
+  document.getElementById('add-btn').textContent = loc.addBtn;
+  document.getElementById('section-label').textContent = loc.sectionLabel;
+  document.getElementById('nav-alerts').textContent = loc.navAlerts;
+  document.getElementById('nav-history').textContent = loc.navHistory;
+  document.getElementById('nav-settings').textContent = loc.navSettings;
+  const active = alerts.filter(a => a.status !== 'paused').length;
+  document.getElementById('active-badge').textContent = loc.activeBadge(active);
+  const sc = document.getElementById('setup-card');
+  if (sc && sc.querySelector('#setup-title')) {
+    document.getElementById('setup-title').textContent = loc.setupTitle;
+    document.getElementById('setup-sub').textContent = loc.setupSub;
+    document.getElementById('setup-save-btn').textContent = loc.setupSave;
+  }
+  renderChips();
+}
+
+function renderChips() {
+  const row = document.getElementById('chips-row');
+  row.innerHTML = l().chips.map(c => '<div class="chip" onclick="setInput(\'' + c[1].replace(/'/g,"&#39;") + '\')">' + c[0] + '</div>').join('');
+}
+
+// ── API KEY ──────────────────────────────────────────────
+function saveApiKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (!val.startsWith('sk-')) { showToast(l().toastInvalidKey); return; }
+  apiKey = val;
+  localStorage.setItem(API_KEY_STORAGE, apiKey);
+  document.getElementById('setup-card').innerHTML = '<div class="connected-badge"><span style="font-size:18px">✅</span><span class="connected-text">' + l().connectedText + '</span></div>';
+  showToast(l().toastKeySaved);
+}
+
+function setInput(text) { document.getElementById('alert-input').value = text; document.getElementById('alert-input').focus(); }
+
+// ── CREATE ALERT ────────────────────────────────────────
+async function createAlert() {
+  const input = document.getElementById('alert-input');
+  const text = input.value.trim();
+  if (!text) { showToast(l().toastNoText); return; }
+  if (!apiKey) { showToast(l().toastNoKey); return; }
+  input.value = '';
+  document.getElementById('add-btn').disabled = true;
+  showChecking(l().checkingDefault);
+  try {
+    const parsed = await parseIntent(text);
+    const dbAlert = await SB.createAlert({ text, keywords: parsed.keywords, condition: parsed.condition, frequency: parsed.frequency, status: 'checking' });
+    if (!dbAlert) throw new Error('DB save failed');
+    const localAlert = { ...dbAlert, icon: ICONS[parsed.type] || ICONS.default, iconBg: ICON_BG[parsed.type] || ICON_BG.default };
+    alerts.unshift(localAlert);
+    renderAlerts();
+    showChecking(l().searching(parsed.keywords));
+    const checkResult = await checkAlert(localAlert);
+    await SB.updateAlert(dbAlert.id, { status: checkResult.triggered ? 'triggered' : 'active', result: checkResult.triggered ? checkResult.summary : null, last_check: new Date().toISOString() });
+    const idx = alerts.findIndex(a => a.id === dbAlert.id);
+    if (idx !== -1) { alerts[idx].status = checkResult.triggered ? 'triggered' : 'active'; alerts[idx].result = checkResult.triggered ? checkResult.summary : null; alerts[idx].last_check = new Date().toISOString(); }
+    renderAlerts(); hideChecking();
+    showToast(checkResult.triggered ? l().toastTriggered : l().toastCreated);
+  } catch(e) { hideChecking(); showToast(l().toastError(e.message || '?')); }
+  document.getElementById('add-btn').disabled = false;
+}
+
+// ── PARSE INTENT ────────────────────────────────────────
+async function parseIntent(text) {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini', max_tokens: 300,
+      messages: [{ role: 'system', content: 'You are an intent parser for a notification system. Reply ONLY with valid JSON, no markdown.\nIMPORTANT: always generate keywords in BOTH the original language AND English.\nFormat: {"type":"flight|job|concert|ipo|product|news|price|default","keywords":"keywords in original lang, keywords in English","condition":"trigger condition in English","frequency":"hourly|daily|weekly"}' }, { role: 'user', content: 'Parse this intent: "' + text + '"' }]
+    })
+  });
+  if (!res.ok) throw new Error('OpenAI API error: ' + res.status);
+  const data = await res.json();
+  return JSON.parse(data.choices[0].message.content.replace(/```json|```/g,'').trim());
+}
+
+// ── CHECK ALERT ─────────────────────────────────────────
+async function checkAlert(alert) {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini', max_tokens: 400,
+      messages: [{ role: 'system', content: 'You are an event monitoring system. Search across all languages. Reply ONLY with valid JSON, no markdown.\nFormat: {"triggered":true|false,"summary":"brief description in same language as original request if triggered, otherwise null","confidence":"high|medium|low"}' }, { role: 'user', content: 'Check this condition right now:\nUser request: "' + alert.text + '"\nKeywords: ' + alert.keywords + '\nCondition: ' + alert.condition + '\n\nIf the event has already occurred or current state matches — triggered=true.' }]
+    })
+  });
+  if (!res.ok) throw new Error('OpenAI API error: ' + res.status);
+  const data = await res.json();
+  return JSON.parse(data.choices[0].message.content.replace(/```json|```/g,'').trim());
+}
+
+// ── RECHECK ─────────────────────────────────────────────
+async function recheck(id) {
+  if (!apiKey) { showToast(l().toastNoKey); return; }
+  const idx = alerts.findIndex(a => a.id === id);
+  if (idx === -1) return;
+  alerts[idx].status = 'checking'; renderAlerts(); showChecking(l().recheckingMsg);
+  try {
+    const result = await checkAlert(alerts[idx]);
+    alerts[idx].status = result.triggered ? 'triggered' : 'active';
+    alerts[idx].last_check = new Date().toISOString();
+    alerts[idx].result = result.triggered ? result.summary : null;
+    await SB.updateAlert(id, { status: alerts[idx].status, result: alerts[idx].result, last_check: alerts[idx].last_check });
+    renderAlerts(); showToast(result.triggered ? l().toastTriggered : l().toastRechecked);
+  } catch(e) { alerts[idx].status = 'active'; renderAlerts(); showToast(l().toastRecheckErr); }
+  hideChecking();
+}
+
+// ── PAUSE / DELETE ───────────────────────────────────────
+async function togglePause(id) {
+  const idx = alerts.findIndex(a => a.id === id);
+  if (idx === -1) return;
+  alerts[idx].status = alerts[idx].status === 'paused' ? 'active' : 'paused';
+  await SB.updateAlert(id, { status: alerts[idx].status });
+  renderAlerts();
+}
+
+async function deleteAlert(id) {
+  alerts = alerts.filter(a => a.id !== id);
+  await SB.deleteAlert(id);
+  renderAlerts(); showToast(l().toastDeleted);
+}
+
+// ── TIME ────────────────────────────────────────────────
+function timeAgo(iso) {
+  if (!iso) return l().timeNever;
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return l().timeJust;
+  if (m < 60) return l().timeMin(m);
+  const h = Math.floor(m / 60);
+  if (h < 24) return l().timeH(h);
+  return l().timeD(Math.floor(h / 24));
+}
+
+function statusLabel(s) { return s==='active'?l().statusActive:s==='checking'?l().statusChecking:s==='triggered'?l().statusTriggered:l().statusPaused; }
+function freqLabel(f) { return f==='hourly'?l().freqHourly:f==='daily'?l().freqDaily:l().freqWeekly; }
+
+// ── RENDER ──────────────────────────────────────────────
+function renderAlerts() {
+  const list = document.getElementById('alerts-list');
+  const active = alerts.filter(a => a.status !== 'paused').length;
+  document.getElementById('active-badge').textContent = l().activeBadge(active);
+  if (alerts.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="empty-emoji">🔔</div><div class="empty-title">' + l().emptyTitle + '</div><div class="empty-sub">' + l().emptySub + '</div></div>';
+    return;
+  }
+  const ICON_BG_FALLBACK = '#F1F5F9';
+  list.innerHTML = alerts.map(a => {
+    const icon = a.icon || '🔔';
+    const iconBg = a.iconBg || ICON_BG_FALLBACK;
+    const sc = a.status==='active'?'status-active':a.status==='checking'?'status-checking':a.status==='triggered'?'status-triggered':'status-paused';
+    const dc = a.status==='active'?'dot-active':a.status==='checking'?'dot-checking':a.status==='triggered'?'dot-triggered':'dot-paused';
+    return '<div class="alert-card' + (a.status==='triggered'?' triggered':a.status==='checking'?' checking':'') + '">' +
+      '<div class="card-top">' +
+        '<div class="card-icon" style="background:' + iconBg + '">' + icon + '</div>' +
+        '<div class="card-body"><div class="card-title">' + a.text + '</div><div class="card-meta">' + (a.keywords||'') + ' · ' + freqLabel(a.frequency) + '</div></div>' +
+        '<div class="card-status"><div class="status-dot-wrap"><div class="dot ' + dc + '"></div><span class="status-label ' + sc + '">' + statusLabel(a.status) + '</span></div></div>' +
+      '</div>' +
+      (a.result ? '<div class="result-box"><div class="result-text">🔔 ' + a.result + '</div></div>' : '') +
+      '<div class="card-footer"><div class="last-check">🕐 ' + timeAgo(a.last_check) + '</div>' +
+        '<div class="card-actions">' +
+          '<button class="btn-sm" onclick="recheck(' + a.id + ')">' + l().btnCheck + '</button>' +
+          '<button class="btn-sm" onclick="togglePause(' + a.id + ')">' + (a.status==='paused'?l().btnResume:l().btnPause) + '</button>' +
+          '<button class="btn-sm btn-danger" onclick="deleteAlert(' + a.id + ')">' + l().btnDelete + '</button>' +
+        '</div></div></div>';
+  }).join('');
+}
+
+function showChecking(text) { document.getElementById('checking-banner').style.display='flex'; document.getElementById('checking-text').textContent=text; }
+function hideChecking() { document.getElementById('checking-banner').style.display='none'; }
+function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+
+document.getElementById('alert-input').addEventListener('keydown', e => { if(e.key==='Enter') createAlert(); });
+
+// ── INIT ────────────────────────────────────────────────
+async function init() {
+  if (apiKey) {
+    document.getElementById('setup-card').innerHTML = '<div class="connected-badge"><span style="font-size:18px">✅</span><span class="connected-text">' + l().connectedText + '</span></div>';
+  }
+  applyLang();
+  showChecking('Загружаем алерты...');
+  try {
+    const dbAlerts = await SB.getAlerts();
+    alerts = dbAlerts.map(a => ({ ...a, icon: ICONS['default'], iconBg: ICON_BG['default'] }));
+  } catch(e) { alerts = []; }
+  hideChecking();
+  renderAlerts();
+  // Auto-refresh every 5 minutes to pick up server-side checks
+  setInterval(async () => {
+    try { const dbAlerts = await SB.getAlerts(); alerts = dbAlerts.map(a => ({...a, icon: ICONS['default'], iconBg: ICON_BG['default']})); renderAlerts(); } catch(e) {}
+  }, 5 * 60 * 1000);
+}
+
+init();
+</script>
+</body>
+</html>
